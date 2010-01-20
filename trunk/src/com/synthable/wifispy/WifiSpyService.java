@@ -10,7 +10,6 @@ import android.util.Log;
 
 public class WifiSpyService extends Service
 {
-	private Context context;
 	private WifiManager wifi;
 
 	/**
@@ -62,19 +61,6 @@ public class WifiSpyService extends Service
 		Log.v("Service.onUnbind()", "in");
 
 		return super.onUnbind(intent);
-	}
-
-	public void setContext(Context _context)
-	{
-		context = _context;
-	}
-
-	public void sendIntent()
-	{
-		Intent i = new Intent(WifiSpyService.this, HomeActivity.class);
-		i.putExtra("aaa", "Testing!");
-		i.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-		//context.startActivity(i);
 	}
 
 	public WifiManager getWifi() {
