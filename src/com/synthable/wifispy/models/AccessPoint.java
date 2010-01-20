@@ -5,6 +5,9 @@ public class AccessPoint
 {
 	private int id;
 	private String ssid;
+	private String capabilities;
+	private int frequency;
+	private int dbm;
 	private boolean isNew = false;
 
 	public AccessPoint()
@@ -34,5 +37,29 @@ public class AccessPoint
 
 	public boolean isNew() {
 		return isNew;
+	}
+
+	public void setCapabilities(String capabilities) {
+		this.capabilities = capabilities;
+	}
+
+	public String getCapabilities() {
+		return capabilities;
+	}
+
+	public void setFrequency(int frequency) {
+		this.frequency = frequency;
+	}
+
+	public int getFrequency() {
+		return frequency;
+	}
+
+	public void setDbm(int dbm) {
+		this.dbm = dbm;
+	}
+
+	public int getDbm() {
+		return dbm;
 	}
 }
