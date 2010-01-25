@@ -9,8 +9,15 @@
             </intent-filter>
         </activity>
         <service android:name=".WifiSpyService"/>
+        <!-- <receiver android:name=".ScanResultReceiver">
+            <intent-filter>
+                <action android:name="android.net.wifi.SCAN_RESULTS"/>
+            </intent-filter>
+        </receiver> -->
     </application>
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.CONTROL_LOCATION_UPDATES"/>
     <uses-sdk android:minSdkVersion="4"/>
 </manifest>
