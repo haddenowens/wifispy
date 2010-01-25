@@ -8,6 +8,8 @@ public class AccessPoint
 	private String capabilities;
 	private int frequency;
 	private int dbm;
+	private Double Lat;
+	private Double Long;
 	private boolean isNew = false;
 
 	public AccessPoint()
@@ -61,5 +63,21 @@ public class AccessPoint
 
 	public int getDbm() {
 		return dbm;
+	}
+
+	public void setLat(Double lat) {
+		Lat = lat;
+	}
+
+	public Double getLat() {
+		return Lat;
+	}
+
+	public void setLong(Double _long) {
+		Long = _long;
+	}
+
+	public Double getLong() {
+		return Long;
 	}
 }

@@ -14,7 +14,7 @@ import android.util.Log;
 
 public class AccessPointAdapter
 {
-	private static final int DATABASE_VERSION = 2;
+	private static final int DATABASE_VERSION = 5;
 
 	private static final String DATABASE_NAME = "WifiSpy.db";
 	private static final String DATABASE_TABLE = "access_points";
@@ -33,6 +33,12 @@ public class AccessPointAdapter
 
 	public static final String KEY_DBM = "dbm";
 	public static final int DBM_COLUMN = 4;
+
+	public static final String KEY_LAT = "latitude";
+	public static final int LAT_COLUMN = 5;
+
+	public static final String KEY_LONG = "longitude";
+	public static final int LONG_COLUMN = 6;
 
 	private SQLiteDatabase db;
 	private AccessPointDbHelper dbHelper;
@@ -66,8 +72,8 @@ public class AccessPointAdapter
 		contentValues.put(KEY_CAPABILITIES, ap.getCapabilities());
 		contentValues.put(KEY_FREQUENCY, ap.getFrequency());
 		contentValues.put(KEY_DBM, ap.getDbm());
-
-		Log.v("insetr()", Integer.toString(ap.getDbm()));
+		contentValues.put(KEY_LAT, ap.getLat());
+		contentValues.put(KEY_LONG, ap.getLong());
 
 		return db.insert(DATABASE_TABLE, null, contentValues);
 	}
@@ -76,18 +82,8 @@ public class AccessPointAdapter
 		return db.delete(DATABASE_TABLE, KEY_ID + "=" + id, null);
 	}
 
-	/*public Cursor getAllFromLocation(int location) {
-		String where = KEY_LOCATION +" = "+ location;
-		return db.query(DATABASE_TABLE, new String[] { KEY_ID, KEY_NAME, KEY_ACTIVE }, where, null, null, null, null);
-	}*/
-
 	public Cursor getAll() {
-		Cursor c = db.query(DATABASE_TABLE, new String[] { KEY_ID, KEY_SSID, KEY_DBM }, null, null, null, null, null);
-		//c.moveToFirst();
-		//Log.v("getAll()", c.getString(c.getColumnIndex(KEY_DBM)));
-
-		//return db.query(DATABASE_TABLE, new String[] { KEY_ID, KEY_SSID, KEY_DBM }, null, null, null, null, null);
-		return c;
+		return db.query(DATABASE_TABLE, new String[] { KEY_ID, KEY_SSID, KEY_DBM }, null, null, null, null, null);
 	}
 
 	public Cursor findRowBySsid(String ssid) {
@@ -109,8 +105,10 @@ public class AccessPointAdapter
 		ap.setCapabilities(c.getString(CAPABILITIES_COLUMN));
 		ap.setFrequency(c.getInt(FREQUENCY_COLUMN));
 		ap.setDbm(c.getInt(DBM_COLUMN));
+		ap.setLat(c.getDouble(LAT_COLUMN));
+		ap.setLong(c.getDouble(LONG_COLUMN));
 
-		Log.v("getRow().1", Integer.toString(c.getInt(DBM_COLUMN)));
+		//Log.v("getRow().1", Integer.toString(c.getInt(DBM_COLUMN)));
 
 		return ap;
 	}
@@ -125,6 +123,8 @@ public class AccessPointAdapter
 		contentValues.put(KEY_CAPABILITIES, ap.getCapabilities());
 		contentValues.put(KEY_FREQUENCY, ap.getFrequency());
 		contentValues.put(KEY_DBM, ap.getDbm());
+		contentValues.put(KEY_LAT, ap.getLat());
+		contentValues.put(KEY_LONG, ap.getLong());
 
 		return db.update(DATABASE_TABLE, contentValues, where, null);
 	}
@@ -139,7 +139,9 @@ public class AccessPointAdapter
 				+ KEY_SSID +" varchar(128) not null,"
 				+ KEY_CAPABILITIES +" varchar(128) not null,"
 				+ KEY_FREQUENCY +" integer not null,"
-				+ KEY_DBM +" integer not null"
+				+ KEY_DBM +" integer not null default 0,"
+				+ KEY_LAT +" double not null default 0,"
+				+ KEY_LONG +" double not null default 0"
 			+");";
 
 		public AccessPointDbHelper(Context context, String name, CursorFactory factory, int version)
