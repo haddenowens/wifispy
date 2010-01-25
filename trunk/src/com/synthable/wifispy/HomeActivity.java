@@ -13,12 +13,14 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.database.Cursor;
+import android.net.Uri;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.ContextMenu;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ContextMenu.ContextMenuInfo;
@@ -34,9 +36,11 @@ import com.synthable.wifispy.models.AccessPoint;
 public class HomeActivity extends ListActivity
 {
 	static final int DIALOG_CONFIRM_DELETE = 0;
+	static final int TOGGLE_SERVICE = 0;
 
 	private int SERVICE_STATUS = 0;
 	private int SELECTED_AP_ID = 0;
+	private int SERVICE_RUNNING = 0;
 	
 	static final int VIEW_AP = 0;
 	static final int DELETE_AP = 1;
@@ -51,6 +55,10 @@ public class HomeActivity extends ListActivity
     			List<ScanResult> results = mBoundService.getWifi().getScanResults();
     			int count = results.size();
 
+    			Double Lat = mBoundService.getLocation().getLatitude();
+    			Double Long = mBoundService.getLocation().getLongitude();
+
+    			//TextView currentDbm = (TextView)findViewById(R.id.rowId).findViewById(R.id.currentDbm);
     			AccessPoint ap = new AccessPoint();
     			int position = 0;
     			for(int x = 1;x <= count;x++)
@@ -59,7 +67,9 @@ public class HomeActivity extends ListActivity
     				String capabilities = results.get(position).capabilities;
     				int frequency = results.get(position).frequency;
     				int dbm = results.get(position).level;
-Log.v("onReceive()", ssid +" => "+ capabilities +" => "+ frequency +" => "+ dbm);
+//Log.v("onReceive()", ssid +" => "+ capabilities +" => "+ frequency +" => "+ dbm);
+
+    				//currentDbm.setText(dbm);
 
     				Cursor c = dbAdapter.findRowBySsid(ssid);
     				if(c.getCount() == 0) {
@@ -67,17 +77,25 @@ Log.v("onReceive()", ssid +" => "+ capabilities +" => "+ frequency +" => "+ dbm)
     					ap.setCapabilities(capabilities);
     					ap.setFrequency(frequency);
     					ap.setDbm(dbm);
+    					ap.setLat(Lat);
+    					ap.setLong(Long);
 
     					Log.v("New SSID: ", ssid);
         				dbAdapter.insert(ap);
     				} else {
-    					/*ap = dbAdapter.getRow(c.getInt(AccessPointAdapter.ID_COLUMN));
-    					if(ap.getDbm() < dbm) {
-    						ap.setDbm(dbm);
-    					}*/
+    					c.moveToFirst();
+    					ap = dbAdapter.getRow(c.getInt(AccessPointAdapter.ID_COLUMN));
 
-    					//Log.v("Old SSID: ", ssid);
-    					//dbAdapter.update(ap);
+    					Log.v("Old SSID: ", ssid +" => "+ ap.getDbm() +" => "+ dbm);
+
+    					// Lower values are a stronger signal
+    					if(ap.getDbm() < dbm) {
+    						Log.v("getDbm() < dbm", ap.getDbm() +" < "+ dbm);
+    						ap.setDbm(dbm);
+    						ap.setLat(Lat);
+    						ap.setLong(Long);
+    						dbAdapter.update(ap);
+    					}
     				}
 
         			position++;
@@ -111,17 +129,13 @@ Log.v("onReceive()", ssid +" => "+ capabilities +" => "+ frequency +" => "+ dbm)
         dbAdapter = new AccessPointAdapter(this);
         dbAdapter.open();
 
-        IntentFilter filter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
-
-        registerReceiver(receiver, filter);
-
         setContentView(R.layout.home);
 
         cursor = dbAdapter.getAll();
         startManagingCursor(cursor);
 
         String[] from = new String[] { AccessPointAdapter.KEY_ID, AccessPointAdapter.KEY_SSID, AccessPointAdapter.KEY_DBM }; 
-		int[] to = new int[] { R.id.id, R.id.ssid, R.id.dbm };
+		int[] to = new int[] { R.id.id, R.id.ssid, R.id.bestDbm };
 
 		accessPoints = new SimpleCursorAdapter(
 			HomeActivity.this,
@@ -136,7 +150,7 @@ Log.v("onReceive()", ssid +" => "+ capabilities +" => "+ frequency +" => "+ dbm)
 					TextView t = (TextView)view;
 					int dbm = cursor.getInt(cursor.getColumnIndex(AccessPointAdapter.KEY_DBM));
 					Log.v("setViewValue()", Integer.toString(dbm));
-					t.setText(dbm +"dBm");
+					t.setText("Best Signal: "+ dbm +"dBm");
 
 					return true;
 				}
@@ -152,7 +166,7 @@ Log.v("onReceive()", ssid +" => "+ capabilities +" => "+ frequency +" => "+ dbm)
     {
 		super.onStart();
 
-		if(SERVICE_STATUS == 0) {
+		/*if(SERVICE_STATUS == 0) {
 			if(mBoundService == null) {
 				startService(new Intent(HomeActivity.this, WifiSpyService.class));
 			}
@@ -164,7 +178,7 @@ Log.v("onReceive()", ssid +" => "+ capabilities +" => "+ frequency +" => "+ dbm)
 			unbindService(mConnection);
 			//button.setText(R.string.stopped);
 			SERVICE_STATUS = 0;
-		}
+		}*/
 
 		/*button = (Button)findViewById(R.id.control_button);
 		if(mBoundService == null) {
@@ -174,6 +188,40 @@ Log.v("onReceive()", ssid +" => "+ capabilities +" => "+ frequency +" => "+ dbm)
 		}*/
 	}
 
+    @Override
+	protected void onResume()
+	{
+		super.onResume();
+		
+		IntentFilter filter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
+        registerReceiver(receiver, filter);
+	}
+
+	@Override
+	protected void onStop()
+	{
+		super.onStop();
+	}
+
+	/**
+	 * Unregister the BroadcastReceiver if the Activity is destroyed
+	 */
+	@Override
+	protected void onDestroy()
+	{
+		super.onDestroy();
+
+		unregisterReceiver(receiver);
+	}
+
+	@Override
+	protected void onNewIntent(Intent intent)
+	{
+		super.onNewIntent(intent);
+
+		Log.v("onNewIntent()", intent.getStringExtra("aaa"));
+	}
+    
 	@Override
 	public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo)
 	{
@@ -201,14 +249,11 @@ Log.v("onReceive()", ssid +" => "+ capabilities +" => "+ frequency +" => "+ dbm)
 		
 		switch (item.getItemId()) {
 			case VIEW_AP:
-				/*Intent intent = new Intent(
-					Intent.ACTION_EDIT,
-					Uri.parse("content://schedules/edit/"+ SELECTED_SCHEDULE_ID),
-					ScheduleList.this,
-					BackupScheduleAdd.class
-				);
-				intent.putExtra("location", LOCATION);
-				startActivity(intent);*/
+				AccessPoint ap = dbAdapter.getRow(SELECTED_AP_ID);
+				startActivity(new Intent(
+					Intent.ACTION_VIEW,
+					Uri.parse("geo:"+ ap.getLat() +","+ ap.getLong())
+				));
 				return true;
 			case DELETE_AP:
 				showDialog(DIALOG_CONFIRM_DELETE);
@@ -217,7 +262,48 @@ Log.v("onReceive()", ssid +" => "+ capabilities +" => "+ frequency +" => "+ dbm)
 				return super.onContextItemSelected(item);
 		}
 	}
-	
+
+	@Override
+	public boolean onPrepareOptionsMenu(Menu menu)
+	{
+		menu.clear();
+		if(mBoundService != null) {
+			menu.add(0, TOGGLE_SERVICE, 0, "Stop Scanning");
+		} else {
+			menu.add(0, TOGGLE_SERVICE, 0, "Start Scanning");
+		}
+
+		return super.onPrepareOptionsMenu(menu);
+	}
+
+	/* Creates the menu items */
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		super.onCreateOptionsMenu(menu);
+
+	    return true;
+	}
+
+	/* Handles item selections */
+	public boolean onOptionsItemSelected(MenuItem item)
+	{
+	    switch (item.getItemId()) {
+		    case TOGGLE_SERVICE:
+		    	if(mBoundService == null) {
+		    		startService(new Intent(HomeActivity.this, WifiSpyService.class));
+					bindService(new Intent(HomeActivity.this, WifiSpyService.class), mConnection, Context.BIND_AUTO_CREATE);
+				} else {
+					unbindService(mConnection);
+					stopService(new Intent(HomeActivity.this, WifiSpyService.class));
+					mBoundService = null;
+				}
+		        return true;
+		    default:
+		        return false;
+	    }
+	}
+
 	@Override
 	protected Dialog onCreateDialog(int id)
 	{
@@ -230,34 +316,7 @@ Log.v("onReceive()", ssid +" => "+ capabilities +" => "+ frequency +" => "+ dbm)
 					.setMessage("Are you sure you want to delete that access point?")
 					.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
 						public void onClick(DialogInterface dialog, int id) {
-
 							dbAdapter.delete(SELECTED_AP_ID);
-							
-							/*BackupSchedule schedule = BackupScheduleAdapter.getRow(SELECTED_SCHEDULE_ID);
-
-							AlarmManager am = (AlarmManager)getSystemService(ALARM_SERVICE);
-			            	Intent intent = new Intent(ScheduleList.this, BackupService.class);
-
-			            	intent.setAction(BackupService.ACTION_BACKUP_SD);
-			            	intent.setData(Uri.parse("content://schedules/"+ schedule.getId()));
-			    			PendingIntent pIntent = PendingIntent.getService(ScheduleList.this, 0, intent, 0);
-
-			    			Calendar cal = Calendar.getInstance();
-			    			cal.set(
-			    				cal.get(Calendar.YEAR),
-			    				cal.get(Calendar.MONTH),
-			    				cal.get(Calendar.DAY_OF_MONTH),
-			    				schedule.getHour(),
-			    				schedule.getMinute(),
-			    				0
-			    			);
-			    			am.cancel(pIntent);
-
-							BackupScheduleAdapter.delete(SELECTED_SCHEDULE_ID);
-							c.requery();
-
-							dialog.dismiss();*/
-
 							cursor.requery();
 						}
 					})
@@ -272,46 +331,9 @@ Log.v("onReceive()", ssid +" => "+ capabilities +" => "+ frequency +" => "+ dbm)
     	}
 	}
 
-	@Override
-	protected void onResume()
-	{
-		super.onResume();
-	}
-
-	@Override
-	protected void onStop()
-	{
-		super.onStop();
-
-		unregisterReceiver(receiver);
-	}
-
-	@Override
-	protected void onNewIntent(Intent intent)
-	{
-		super.onNewIntent(intent);
-
-		Log.v("onNewIntent()", intent.getStringExtra("aaa"));
-	}
-
 	public void onClickListener(View target)
 	{
     	switch(target.getId()) {
-    		case R.id.control_button:
-    			if(SERVICE_STATUS == 0) {
-    				if(mBoundService == null) {
-    					startService(new Intent(HomeActivity.this, WifiSpyService.class));
-    				}
-    				bindService(new Intent(HomeActivity.this, WifiSpyService.class), mConnection, Context.BIND_AUTO_CREATE);
-    				//button.setText(R.string.running);
-    				SERVICE_STATUS = 1;
-    			} else {
-    				stopService(new Intent(HomeActivity.this, WifiSpyService.class));
-    				unbindService(mConnection);
-    				//button.setText(R.string.stopped);
-    				SERVICE_STATUS = 0;
-    			}
-    			break;
     		default:
     			break;
     	}
