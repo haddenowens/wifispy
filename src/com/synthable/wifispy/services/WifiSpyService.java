@@ -1,4 +1,4 @@
-package com.synthable.wifispy;
+package com.synthable.wifispy.services;
 
 import android.app.Service;
 import android.content.Context;
@@ -12,6 +12,7 @@ import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
+import android.widget.Toast;
 
 public class WifiSpyService extends Service
 {
@@ -24,14 +25,12 @@ public class WifiSpyService extends Service
      * IPC.
      */
     public class ServiceBinder extends Binder {
-    	WifiSpyService getService() {
+    	public WifiSpyService getService() {
             return WifiSpyService.this;
         }
     }
 
     private Location location = null;
-	private int t = 2000; //300000;
-	private int d = 10;
 
 	private LocationListener myLocationListener = new LocationListener()
 	{
@@ -48,7 +47,7 @@ public class WifiSpyService extends Service
 		public void onProviderEnabled(String provider){ }
 		public void onStatusChanged(String provider, int status, Bundle extras){ }
 	};
-    
+
     // This is the object that receives interactions from clients.  See
     // RemoteService for a more complete example.
     private final IBinder mBinder = new ServiceBinder();
@@ -63,7 +62,7 @@ public class WifiSpyService extends Service
 	@Override
 	public void onCreate()
 	{
-		Log.v("Service.onCreate()", "in");
+//Log.v("Service.onCreate()", "in");
 		wifi = (WifiManager)getSystemService(Context.WIFI_SERVICE);
 
 		gps = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
@@ -72,6 +71,8 @@ public class WifiSpyService extends Service
 	@Override
 	public void onStart(Intent intent, int startId)
 	{
+		Toast.makeText(this, "WifiSpy Service is starting...", Toast.LENGTH_SHORT).show();
+
 		Criteria criteria = new Criteria();
 		criteria.setAccuracy(Criteria.ACCURACY_FINE);
 		criteria.setAltitudeRequired(false);
@@ -81,10 +82,20 @@ public class WifiSpyService extends Service
 
 		String provider = gps.getBestProvider(criteria, true);
 
-		gps.requestLocationUpdates(provider, getMilliseconds(), getMeters(), myLocationListener);
+		gps.requestLocationUpdates(provider, 2000, 10, myLocationListener);
 		location = gps.getLastKnownLocation(provider);
 
-		Log.v("Service.onStart()", Double.toString(location.getLatitude()));
+		if(!wifi.isWifiEnabled()) {
+			wifi.setWifiEnabled(true);
+		}
+	}
+
+	@Override
+	public void onDestroy()
+	{
+		super.onDestroy();
+
+		Toast.makeText(this, "WifiSpy Service is stopping...", Toast.LENGTH_SHORT).show();
 	}
 
 	@Override
@@ -92,13 +103,13 @@ public class WifiSpyService extends Service
 	{
 		super.onRebind(intent);
 
-		Log.v("Service.onRebind()", "in");
+//Log.v("Service.onRebind()", "in");
 	}
 
 	@Override
 	public boolean onUnbind(Intent intent)
 	{
-		Log.v("Service.onUnbind()", "in");
+//Log.v("Service.onUnbind()", "in");
 
 		return super.onUnbind(intent);
 	}
@@ -115,11 +126,39 @@ public class WifiSpyService extends Service
 		return location;
 	}
 
-	public int getMilliseconds() {
-		return t;
-	}
-
-	public int getMeters() {
-		return d;
+	public static int getChannel(int frequency)
+	{
+		switch(frequency) {
+			case 2412:
+				return 1;
+			case 2417:
+				return 2;
+			case 2422:
+				return 3;
+			case 2427:
+				return 4;
+			case 2432:
+				return 5;
+			case 2437:
+				return 6;
+			case 2442:
+				return 7;
+			case 2447:
+				return 8;
+			case 2452:
+				return 9;
+			case 2457:
+				return 10;
+			case 2462:
+				return 11;
+			case 2467:
+				return 12;
+			case 2472:
+				return 13;
+			case 2484:
+				return 14;
+			default:
+				return 0;
+		}
 	}
 }

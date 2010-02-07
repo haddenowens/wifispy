@@ -5,6 +5,7 @@ public class AccessPoint
 {
 	private int id;
 	private String ssid;
+	private String bssid;
 	private String capabilities;
 	private int frequency;
 	private int dbm;
@@ -79,5 +80,13 @@ public class AccessPoint
 
 	public Double getLong() {
 		return Long;
+	}
+
+	public void setBssid(String bssid) {
+		this.bssid = bssid;
+	}
+
+	public String getBssid() {
+		return bssid;
 	}
 }

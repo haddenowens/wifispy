@@ -1,10 +1,16 @@
 package com.synthable.wifispy;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.List;
 
+import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ListActivity;
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -13,10 +19,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.database.Cursor;
-import android.net.Uri;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.ContextMenu;
@@ -25,29 +32,37 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.widget.AdapterView;
-import android.widget.Button;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 
 import com.synthable.wifispy.adapters.AccessPointAdapter;
 import com.synthable.wifispy.models.AccessPoint;
+import com.synthable.wifispy.services.WifiSpyService;
 
 public class HomeActivity extends ListActivity
 {
 	static final int DIALOG_CONFIRM_DELETE = 0;
+	static final int DIALOG_EXPORTING = 1;
+	static final int DIALOG_DONE_EXPORTING = 2;
+
 	static final int TOGGLE_SERVICE = 0;
+	static final int MAP_ALL_AP = 1;
+	static final int EXPORT_KML = 2;
+
+	static final int VIEW_AP = 0;
+	static final int DELETE_AP = 1;
+	static final int DETAILS_AP = 2;
 
 	private int SERVICE_STATUS = 0;
 	private int SELECTED_AP_ID = 0;
-	private int SERVICE_RUNNING = 0;
-	
-	static final int VIEW_AP = 0;
-	static final int DELETE_AP = 1;
 
-    private WifiSpyService mBoundService = null;
+	static final String WIFISPY_SERVICE_CLASS = "com.synthable.wifispy.WifiSpyService";
+
+    WifiSpyService mBoundService = null;
     private SimpleCursorAdapter accessPoints;
     private AccessPointAdapter dbAdapter;
+
     private BroadcastReceiver receiver = new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context context, Intent intent) {
@@ -58,12 +73,13 @@ public class HomeActivity extends ListActivity
     			Double Lat = mBoundService.getLocation().getLatitude();
     			Double Long = mBoundService.getLocation().getLongitude();
 
-    			//TextView currentDbm = (TextView)findViewById(R.id.rowId).findViewById(R.id.currentDbm);
     			AccessPoint ap = new AccessPoint();
     			int position = 0;
+
     			for(int x = 1;x <= count;x++)
     			{
     				String ssid = results.get(position).SSID;
+    				String bssid = results.get(position).BSSID;
     				String capabilities = results.get(position).capabilities;
     				int frequency = results.get(position).frequency;
     				int dbm = results.get(position).level;
@@ -71,25 +87,26 @@ public class HomeActivity extends ListActivity
 
     				//currentDbm.setText(dbm);
 
-    				Cursor c = dbAdapter.findRowBySsid(ssid);
+    				Cursor c = dbAdapter.findRowByBssid(bssid);
     				if(c.getCount() == 0) {
     					ap.setSsid(ssid);
+    					ap.setBssid(bssid);
     					ap.setCapabilities(capabilities);
     					ap.setFrequency(frequency);
     					ap.setDbm(dbm);
     					ap.setLat(Lat);
     					ap.setLong(Long);
 
-    					Log.v("New SSID: ", ssid);
         				dbAdapter.insert(ap);
     				} else {
     					c.moveToFirst();
     					ap = dbAdapter.getRow(c.getInt(AccessPointAdapter.ID_COLUMN));
 
-    					Log.v("Old SSID: ", ssid +" => "+ ap.getDbm() +" => "+ dbm);
-
-    					// Lower values are a stronger signal
-    					if(ap.getDbm() < dbm) {
+    					/**
+    					 * <0 if current dbm is weaker than last logged dbm
+    					 * >0 if current dbm is stronger than last logged dbm
+    					 */
+						if(WifiManager.compareSignalLevel(dbm, ap.getDbm()) > 0) {
     						Log.v("getDbm() < dbm", ap.getDbm() +" < "+ dbm);
     						ap.setDbm(dbm);
     						ap.setLat(Lat);
@@ -106,7 +123,6 @@ public class HomeActivity extends ListActivity
 		}
     };
 
-    private Button button;
     private Cursor cursor;
 
 	private ServiceConnection mConnection = new ServiceConnection() {
@@ -121,6 +137,74 @@ public class HomeActivity extends ListActivity
         }
     };
 
+    /**
+	 * This thread checks that the supplied password matches the one in the system.
+	 */
+	class KmlExport extends AsyncTask<String, String, Integer>
+	{
+		Cursor c;
+
+	    @Override
+		protected void onPreExecute()
+	    {
+			super.onPreExecute();
+			
+			//c = dbAdapter.getAll();
+			c = cursor;
+			c.moveToFirst();
+
+			showDialog(DIALOG_EXPORTING);
+		}
+
+	    @Override
+		protected Integer doInBackground(String... params)
+	    {
+	    	//Log.v("BackupService.startBackup()", backup.toString());
+			try {
+				
+	            File root = Environment.getExternalStorageDirectory();
+	            //if (root.canWrite()) {
+	            	File dir = new File(root, "/wifispy/");
+	            	dir.mkdirs();
+
+	                File file = new File(root, "/wifispy/"+ System.currentTimeMillis() +".kml");
+	                FileWriter writer = new FileWriter(file);
+	                BufferedWriter out = new BufferedWriter(writer);
+
+	                out.write("<?xml version='1.0' encoding='UTF-8'?><kml xmlns='http://www.opengis.net/kml/2.2'><Document>");
+
+	                while(!c.isLast())
+	                {
+	                	out.write("<Placemark>");
+	                	out.write("<name><![CDATA["+ c.getString(c.getColumnIndex(AccessPointAdapter.KEY_SSID)) +"]]></name>");
+	                	out.write("<description><![CDATA[");
+	                	out.write("<b>BSSID</b>: "+ c.getString(c.getColumnIndex(AccessPointAdapter.KEY_BSSID)) +"<br>");
+	                	out.write("<b>Best dBm</b>: "+ c.getInt(c.getColumnIndex(AccessPointAdapter.KEY_DBM)) +"<br>");
+	                	out.write("<b>Encryption Capabilities</b>: "+ c.getString(c.getColumnIndex(AccessPointAdapter.KEY_CAPABILITIES)) +"<br>");
+	                	out.write("]]></description>");
+	                	out.write("<Point><coordinates>"+ c.getFloat(c.getColumnIndex(AccessPointAdapter.KEY_LONG)) +","+ c.getFloat(c.getColumnIndex(AccessPointAdapter.KEY_LAT)) +",0</coordinates></Point>");
+	                	out.write("</Placemark>");
+
+	                	c.moveToNext();
+	                }
+	                out.write("</Document></kml>");
+	                out.close();
+	            //}
+	        } catch (IOException e) {
+	            Log.v("onCreate()", "Could not write file " + e.getMessage());
+	        }
+
+			return SELECTED_AP_ID;
+	    }
+
+	    @Override
+	    protected void onPostExecute(Integer result)
+	    {
+	    	dismissDialog(DIALOG_EXPORTING);
+	    	showDialog(DIALOG_DONE_EXPORTING);
+	    }
+	}
+    
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
@@ -134,8 +218,8 @@ public class HomeActivity extends ListActivity
         cursor = dbAdapter.getAll();
         startManagingCursor(cursor);
 
-        String[] from = new String[] { AccessPointAdapter.KEY_ID, AccessPointAdapter.KEY_SSID, AccessPointAdapter.KEY_DBM }; 
-		int[] to = new int[] { R.id.id, R.id.ssid, R.id.bestDbm };
+        String[] from = new String[] { AccessPointAdapter.KEY_ID, AccessPointAdapter.KEY_SSID, AccessPointAdapter.KEY_DBM, AccessPointAdapter.KEY_FREQUENCY, AccessPointAdapter.KEY_CAPABILITIES }; 
+		int[] to = new int[] { R.id.id, R.id.ssid, R.id.bestDbm, R.id.channel, R.id.encryption };
 
 		accessPoints = new SimpleCursorAdapter(
 			HomeActivity.this,
@@ -146,15 +230,20 @@ public class HomeActivity extends ListActivity
 		);
 		accessPoints.setViewBinder(new SimpleCursorAdapter.ViewBinder() {
 			public boolean setViewValue(View view, Cursor cursor, int columnIndex) {
-				if(columnIndex == 2) {
-					TextView t = (TextView)view;
-					int dbm = cursor.getInt(cursor.getColumnIndex(AccessPointAdapter.KEY_DBM));
-					Log.v("setViewValue()", Integer.toString(dbm));
-					t.setText("Best Signal: "+ dbm +"dBm");
-
-					return true;
+				switch(columnIndex) {
+					case 3:
+						TextView t = (TextView)view;
+						int dbm = cursor.getInt(cursor.getColumnIndex(AccessPointAdapter.KEY_DBM));
+						t.setText(dbm +"dBm");
+						return true;
+					case 4:
+						TextView c = (TextView)view;
+						int channel = WifiSpyService.getChannel(cursor.getInt(cursor.getColumnIndex(AccessPointAdapter.KEY_FREQUENCY)));
+						c.setText("Ch. "+ channel);
+						return true;
+					default:
+						return false;
 				}
-				return false;
 			}
 		});
 		setListAdapter(accessPoints);
@@ -166,33 +255,27 @@ public class HomeActivity extends ListActivity
     {
 		super.onStart();
 
-		/*if(SERVICE_STATUS == 0) {
-			if(mBoundService == null) {
-				startService(new Intent(HomeActivity.this, WifiSpyService.class));
-			}
-			bindService(new Intent(HomeActivity.this, WifiSpyService.class), mConnection, Context.BIND_AUTO_CREATE);
-			//button.setText(R.string.running);
-			SERVICE_STATUS = 1;
-		} else {
-			stopService(new Intent(HomeActivity.this, WifiSpyService.class));
-			unbindService(mConnection);
-			//button.setText(R.string.stopped);
-			SERVICE_STATUS = 0;
-		}*/
+		/**
+		 * Loop through the currently running service on the device and check them against the
+		 * WifiSpyService class.
+		 */
+		ActivityManager am = (ActivityManager)getSystemService(ACTIVITY_SERVICE);  
+		List<ActivityManager.RunningServiceInfo> rs = am.getRunningServices(100);  //Hopefully there are less than 100 services running
 
-		/*button = (Button)findViewById(R.id.control_button);
-		if(mBoundService == null) {
-			button.setText(R.string.stopped);
-		} else {
-			button.setText(R.string.running);
-		}*/
+		for (int i=0; i<rs.size(); i++) {
+		  ActivityManager.RunningServiceInfo
+		  rsi = rs.get(i);
+		  if(rsi.service.getClassName().equals(WIFISPY_SERVICE_CLASS)) {
+			  SERVICE_STATUS = 1;
+		  }
+		}
 	}
 
     @Override
 	protected void onResume()
 	{
 		super.onResume();
-		
+
 		IntentFilter filter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
         registerReceiver(receiver, filter);
 	}
@@ -212,16 +295,9 @@ public class HomeActivity extends ListActivity
 		super.onDestroy();
 
 		unregisterReceiver(receiver);
+		dbAdapter.close();
 	}
 
-	@Override
-	protected void onNewIntent(Intent intent)
-	{
-		super.onNewIntent(intent);
-
-		Log.v("onNewIntent()", intent.getStringExtra("aaa"));
-	}
-    
 	@Override
 	public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo)
 	{
@@ -230,10 +306,12 @@ public class HomeActivity extends ListActivity
 		AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
 		Cursor c = (Cursor)getListAdapter().getItem(info.position);
 		AccessPoint ap = dbAdapter.getRow(c.getInt(AccessPointAdapter.ID_COLUMN));
+		c = null;
 
 		menu.setHeaderTitle(ap.getSsid());
-		menu.add(0, VIEW_AP, 0, "View");
-		menu.add(0, DELETE_AP, 0, "Delete");
+		menu.add(0, DETAILS_AP, 0, "Details");
+		menu.add(0, VIEW_AP, 1, "Map It");
+		menu.add(0, DELETE_AP, 2, "Delete");
 	}
 
 	@Override
@@ -241,19 +319,22 @@ public class HomeActivity extends ListActivity
 	{
 		AdapterContextMenuInfo info = (AdapterContextMenuInfo)item.getMenuInfo();
 
+		/**
+		 * Get the Access Point id from the hidden text view
+		 */
 		TextView t = (TextView)info.targetView.findViewById(R.id.ssid);
-		String ssid = t.getText().toString();
-
 		t = (TextView)info.targetView.findViewById(R.id.id);
 		SELECTED_AP_ID = Integer.parseInt(t.getText().toString());
-		
+
 		switch (item.getItemId()) {
 			case VIEW_AP:
-				AccessPoint ap = dbAdapter.getRow(SELECTED_AP_ID);
-				startActivity(new Intent(
-					Intent.ACTION_VIEW,
-					Uri.parse("geo:"+ ap.getLat() +","+ ap.getLong())
-				));
+				Intent i = new Intent(
+					this,
+					WifiMap.class
+				);
+				i.setAction(WifiMap.ACTION_VIEW_SINGLE);
+				i.putExtra("id", SELECTED_AP_ID);
+				startActivity(i);
 				return true;
 			case DELETE_AP:
 				showDialog(DIALOG_CONFIRM_DELETE);
@@ -267,16 +348,18 @@ public class HomeActivity extends ListActivity
 	public boolean onPrepareOptionsMenu(Menu menu)
 	{
 		menu.clear();
-		if(mBoundService != null) {
+		if(SERVICE_STATUS == 1) {
 			menu.add(0, TOGGLE_SERVICE, 0, "Stop Scanning");
 		} else {
 			menu.add(0, TOGGLE_SERVICE, 0, "Start Scanning");
 		}
 
+		menu.add(0, MAP_ALL_AP, 1, "Map All AP").setIcon(android.R.drawable.ic_menu_mapmode);
+		menu.add(0, EXPORT_KML, 2, "Google Earth Export");
+
 		return super.onPrepareOptionsMenu(menu);
 	}
 
-	/* Creates the menu items */
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
@@ -285,19 +368,31 @@ public class HomeActivity extends ListActivity
 	    return true;
 	}
 
-	/* Handles item selections */
 	public boolean onOptionsItemSelected(MenuItem item)
 	{
 	    switch (item.getItemId()) {
 		    case TOGGLE_SERVICE:
-		    	if(mBoundService == null) {
+		    	if(SERVICE_STATUS == 0) {
 		    		startService(new Intent(HomeActivity.this, WifiSpyService.class));
 					bindService(new Intent(HomeActivity.this, WifiSpyService.class), mConnection, Context.BIND_AUTO_CREATE);
+					SERVICE_STATUS = 1;
 				} else {
 					unbindService(mConnection);
 					stopService(new Intent(HomeActivity.this, WifiSpyService.class));
 					mBoundService = null;
+					SERVICE_STATUS = 0;
 				}
+		        return true;
+		    case MAP_ALL_AP:
+		    	Intent i = new Intent(
+						this,
+						WifiMap.class
+					);
+				i.setAction(WifiMap.ACTION_VIEW_ALL);
+				startActivity(i);
+		        return true;
+		    case EXPORT_KML:
+		    	new KmlExport().execute();
 		        return true;
 		    default:
 		        return false;
@@ -326,6 +421,23 @@ public class HomeActivity extends ListActivity
 						}
 					});
     			return builder.create();
+    		case DIALOG_EXPORTING:
+    			ProgressDialog progressDialog;
+    			progressDialog = new ProgressDialog(this);
+    			progressDialog.setMessage("Exporting...");
+    			progressDialog.setCancelable(false);
+    			progressDialog.show();
+    			return progressDialog;
+    		case DIALOG_DONE_EXPORTING:
+    			builder.setCancelable(true)
+				.setTitle("Done exporting")
+				.setMessage("Done exporting your Access Point selections to a Google Earth KML file on your SD Card.")
+				.setNeutralButton("Ok", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+						dialog.dismiss();
+					}
+				});
+			return builder.create();
     		default:
     			return null;
     	}
@@ -339,5 +451,11 @@ public class HomeActivity extends ListActivity
     	}
     }
 
-	
+	public static String getEncryption(String capability)
+	{
+		if(capability.contains("[WEP]")) {
+			return "WEP";
+		}
+		return "";
+	}
 }

@@ -14,7 +14,7 @@ import android.util.Log;
 
 public class AccessPointAdapter
 {
-	private static final int DATABASE_VERSION = 5;
+	private static final int DATABASE_VERSION = 6;
 
 	private static final String DATABASE_NAME = "WifiSpy.db";
 	private static final String DATABASE_TABLE = "access_points";
@@ -25,20 +25,23 @@ public class AccessPointAdapter
 	public static final String KEY_SSID = "ssid";
 	public static final int SSID_COLUMN = 1;
 
+	public static final String KEY_BSSID = "bssid";
+	public static final int BSSID_COLUMN = 2;
+
 	public static final String KEY_CAPABILITIES = "capabilities";
-	public static final int CAPABILITIES_COLUMN = 2;
+	public static final int CAPABILITIES_COLUMN = 3;
 
 	public static final String KEY_FREQUENCY = "frequency";
-	public static final int FREQUENCY_COLUMN = 3;
+	public static final int FREQUENCY_COLUMN = 4;
 
 	public static final String KEY_DBM = "dbm";
-	public static final int DBM_COLUMN = 4;
+	public static final int DBM_COLUMN = 5;
 
 	public static final String KEY_LAT = "latitude";
-	public static final int LAT_COLUMN = 5;
+	public static final int LAT_COLUMN = 6;
 
 	public static final String KEY_LONG = "longitude";
-	public static final int LONG_COLUMN = 6;
+	public static final int LONG_COLUMN = 7;
 
 	private SQLiteDatabase db;
 	private AccessPointDbHelper dbHelper;
@@ -69,6 +72,7 @@ public class AccessPointAdapter
 		ContentValues contentValues = new ContentValues();
 
 		contentValues.put(KEY_SSID, ap.getSsid());
+		contentValues.put(KEY_BSSID, ap.getBssid());
 		contentValues.put(KEY_CAPABILITIES, ap.getCapabilities());
 		contentValues.put(KEY_FREQUENCY, ap.getFrequency());
 		contentValues.put(KEY_DBM, ap.getDbm());
@@ -83,12 +87,17 @@ public class AccessPointAdapter
 	}
 
 	public Cursor getAll() {
-		return db.query(DATABASE_TABLE, new String[] { KEY_ID, KEY_SSID, KEY_DBM }, null, null, null, null, null);
+		return db.query(DATABASE_TABLE, new String[] { KEY_ID, KEY_SSID, KEY_BSSID, KEY_DBM, KEY_FREQUENCY, KEY_CAPABILITIES, KEY_LONG, KEY_LAT }, null, null, null, null, null);
 	}
 
 	public Cursor findRowBySsid(String ssid) {
 		String where = KEY_SSID +" = '"+ ssid +"'";
 		return db.query(DATABASE_TABLE, new String[] { KEY_ID, KEY_SSID }, where, null, null, null, null);
+	}
+	
+	public Cursor findRowByBssid(String bssid) {
+		String where = KEY_BSSID +" = '"+ bssid +"'";
+		return db.query(DATABASE_TABLE, new String[] { KEY_ID, KEY_BSSID }, where, null, null, null, null);
 	}
 
 	public AccessPoint getRow(int id)
@@ -102,6 +111,7 @@ public class AccessPointAdapter
 		ap.setNew(false);
 		ap.setId(c.getInt(ID_COLUMN));
 		ap.setSsid(c.getString(SSID_COLUMN));
+		ap.setBssid(c.getString(BSSID_COLUMN));
 		ap.setCapabilities(c.getString(CAPABILITIES_COLUMN));
 		ap.setFrequency(c.getInt(FREQUENCY_COLUMN));
 		ap.setDbm(c.getInt(DBM_COLUMN));
@@ -120,6 +130,7 @@ public class AccessPointAdapter
 
 		contentValues.put(KEY_ID, ap.getId());
 		contentValues.put(KEY_SSID, ap.getSsid());
+		contentValues.put(KEY_BSSID, ap.getBssid());
 		contentValues.put(KEY_CAPABILITIES, ap.getCapabilities());
 		contentValues.put(KEY_FREQUENCY, ap.getFrequency());
 		contentValues.put(KEY_DBM, ap.getDbm());
@@ -137,6 +148,7 @@ public class AccessPointAdapter
 			"CREATE TABLE "+ DATABASE_TABLE +"("
 				+ KEY_ID +" integer primary key autoincrement,"
 				+ KEY_SSID +" varchar(128) not null,"
+				+ KEY_BSSID +" varchar(128) not null,"
 				+ KEY_CAPABILITIES +" varchar(128) not null,"
 				+ KEY_FREQUENCY +" integer not null,"
 				+ KEY_DBM +" integer not null default 0,"
@@ -147,7 +159,6 @@ public class AccessPointAdapter
 		public AccessPointDbHelper(Context context, String name, CursorFactory factory, int version)
 		{
 			super(context, name, factory, version);
-			Log.v("database_create", DATABASE_CREATE);
 		}
 
 		/**
@@ -156,6 +167,7 @@ public class AccessPointAdapter
 		@Override
 		public void onCreate(SQLiteDatabase _db)
 		{
+			Log.v("database_create", DATABASE_CREATE);
 			_db.execSQL(DATABASE_CREATE);
 		}
 
