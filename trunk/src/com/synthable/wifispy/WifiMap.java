@@ -107,10 +107,10 @@ public class WifiMap extends MapActivity
 				OverlayItem overlayitem = new OverlayItem(point, "Access Point", "This is a snippit...");
 
 				itemizedOverlay.addOverlay(overlayitem);
-				mapOverlays.add(itemizedOverlay);
 
 				c.moveToNext();
 			}
+			mapOverlays.add(itemizedOverlay);
 			c.close();
 		}
 	}

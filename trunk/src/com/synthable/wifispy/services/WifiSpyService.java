@@ -77,8 +77,8 @@ public class WifiSpyService extends Service
 		criteria.setAccuracy(Criteria.ACCURACY_FINE);
 		criteria.setAltitudeRequired(false);
 		criteria.setBearingRequired(false);
-		criteria.setCostAllowed(true);
-		criteria.setPowerRequirement(Criteria.POWER_LOW);
+		//criteria.setCostAllowed(true);
+		//criteria.setPowerRequirement(Criteria.POWER_LOW);
 
 		String provider = gps.getBestProvider(criteria, true);
 

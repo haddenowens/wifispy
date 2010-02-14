@@ -33,9 +33,9 @@ public class WifiApItemizedOverlay extends ItemizedOverlay<OverlayItem>
 		
 		return super.onTap(p, mapView);
 	}
-	
+
 	public void addOverlay(OverlayItem overlay) {
 	    mOverlays.add(overlay);
 	    populate();
-	}	
+	}
 }

@@ -19,6 +19,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.database.Cursor;
+import android.location.Criteria;
+import android.location.LocationManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
@@ -45,6 +47,7 @@ public class HomeActivity extends ListActivity
 	static final int DIALOG_CONFIRM_DELETE = 0;
 	static final int DIALOG_EXPORTING = 1;
 	static final int DIALOG_DONE_EXPORTING = 2;
+	static final int DIALOG_ENABLE_GPS = 3;
 
 	static final int TOGGLE_SERVICE = 0;
 	static final int MAP_ALL_AP = 1;
@@ -269,6 +272,10 @@ public class HomeActivity extends ListActivity
 			  SERVICE_STATUS = 1;
 		  }
 		}
+
+		/*if(gps.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+			showDialog(DIALOG_ENABLE_GPS);
+		}*/
 	}
 
     @Override
@@ -433,6 +440,26 @@ public class HomeActivity extends ListActivity
 				.setTitle("Done exporting")
 				.setMessage("Done exporting your Access Point selections to a Google Earth KML file on your SD Card.")
 				.setNeutralButton("Ok", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+						dialog.dismiss();
+					}
+				});
+			return builder.create();
+    		case DIALOG_ENABLE_GPS:
+    			builder.setCancelable(true)
+				.setTitle("Enable GPS")
+				.setMessage("Would you like to enable GPS?  It will result in more accurate scans.")
+				.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+						Criteria criteria = new Criteria();
+						criteria.setAccuracy(Criteria.ACCURACY_FINE);
+						criteria.setAltitudeRequired(false);
+						criteria.setBearingRequired(false);
+						criteria.setCostAllowed(true);
+						//criteria.setPowerRequirement(Criteria.POWER_LOW);
+					}
+				})
+				.setNegativeButton("No", new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int id) {
 						dialog.dismiss();
 					}
