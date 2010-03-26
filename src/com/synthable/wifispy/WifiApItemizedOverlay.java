@@ -9,35 +9,34 @@ import com.google.android.maps.ItemizedOverlay;
 import com.google.android.maps.MapView;
 import com.google.android.maps.OverlayItem;
 
-public class WifiApItemizedOverlay extends ItemizedOverlay<OverlayItem>
-{
-	private ArrayList<OverlayItem> mOverlays = new ArrayList<OverlayItem>();
+public class WifiApItemizedOverlay extends ItemizedOverlay<OverlayItem> {
+    private ArrayList<OverlayItem> mOverlays = new ArrayList<OverlayItem>();
 
-	public WifiApItemizedOverlay(Drawable defaultMarker) {
-		super(boundCenterBottom(defaultMarker));
-	}
+    public WifiApItemizedOverlay(Drawable defaultMarker) {
+        super(boundCenterBottom(defaultMarker));
+    }
 
-	@Override
-	protected OverlayItem createItem(int i) {
-		return mOverlays.get(i);
-	}
+    @Override
+    protected OverlayItem createItem(int i) {
+        return mOverlays.get(i);
+    }
 
-	@Override
-	public int size() {
-		return mOverlays.size();
-	}
+    @Override
+    public int size() {
+        return mOverlays.size();
+    }
 
-	@Override
-	public boolean onTap(GeoPoint p, MapView mapView) {
-		return super.onTap(p, mapView);
-	}
+    @Override
+    public boolean onTap(GeoPoint p, MapView mapView) {
+        return super.onTap(p, mapView);
+    }
 
-	public void addOverlay(OverlayItem overlay) {
-	    mOverlays.add(overlay);
-	    populate();
-	}
-	
-	public void clear() {
-		mOverlays.clear();
-	}
+    public void addOverlay(OverlayItem overlay) {
+        mOverlays.add(overlay);
+        populate();
+    }
+
+    public void clear() {
+        mOverlays.clear();
+    }
 }
