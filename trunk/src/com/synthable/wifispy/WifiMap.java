@@ -2,9 +2,13 @@ package com.synthable.wifispy;
 
 import java.util.List;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.drawable.Drawable;
+import android.os.AsyncTask;
 import android.os.Bundle;
 
 import com.google.android.maps.GeoPoint;
@@ -19,81 +23,140 @@ import com.synthable.wifispy.models.AccessPoint;
 
 public class WifiMap extends MapActivity
 {
+	public static final int DIALOG_LOADING = 0;
+
 	public static final String ACTION_VIEW_SINGLE = "com.synthable.wifispy.action.view_single";
 	public static final String ACTION_VIEW_ALL = "com.synthable.wifispy.action.view_all";
 	public static final String ACTION_VIEW_RADIUS = "com.synthable.wifispy.action.view_radius";
 
-	MapView mapView;
-	List<Overlay> mapOverlays;
-	Drawable drawable;
-	WifiApItemizedOverlay itemizedOverlay;
+	MapView mMapView;
+	List<Overlay> mMapOverlays;
+	Drawable mDrawable;
+	WifiApItemizedOverlay mItemizedOverlay;
 	MapController mController;
-	AccessPointAdapter dbAdapter;
-	AccessPoint ap;
+	AccessPointAdapter mDbAdapter;
+	AccessPoint mAccessPoint;
+	Cursor mCursor;
 	MyLocationOverlay mLocationOverlay;
+	ProgressDialog mProgressDialog;
 
-	@Override
-	protected void onCreate(Bundle icicle)
-	{
-		super.onCreate(icicle);
+	class LoadWifiAp extends AsyncTask<Void, Integer, Void> {
+		Cursor c;
+		WifiApItemizedOverlay iOverlay;
+		List<Overlay> mOverlays;
+		AccessPoint ap;
+		int count = 0;
 
-		dbAdapter = new AccessPointAdapter(this);
-        dbAdapter.open();
+	    @Override
+		protected void onPreExecute() {
+			super.onPreExecute();
 
-		setContentView(R.layout.map);
+			c = mCursor;
+			c.moveToFirst();
 
-		mapView = (MapView) findViewById(R.id.mapview);
-		mapView.setBuiltInZoomControls(true);
-		mapView.setReticleDrawMode(MapView.ReticleDrawMode.DRAW_RETICLE_OVER);
-		mController = (MapController) mapView.getController();
-		mLocationOverlay = new MyLocationOverlay(WifiMap.this, mapView);
+			mOverlays = mMapOverlays;
+			iOverlay = mItemizedOverlay;
 
-		mapOverlays = mapView.getOverlays();
-		drawable = getResources().getDrawable(android.R.drawable.star_on);  //R.drawable.marker);
-		itemizedOverlay = new WifiApItemizedOverlay(drawable);
+			//showDialog(DIALOG_LOADING);
+		}
+
+	    protected Void doInBackground(Void... nothing) {
+			count = c.getCount();
+			int columnIndex = c.getColumnIndex(AccessPointAdapter.KEY_ID);
+			int num = 0;
+
+			c.moveToFirst();
+			for(int x = 0;x != count;x++) {
+				ap = mDbAdapter.getRow(c.getInt(columnIndex));
+				Double lat = ap.getLat() * 1E6;
+		        Double lng = ap.getLong() * 1E6;
+
+				GeoPoint point = new GeoPoint(lat.intValue(), lng.intValue());
+				OverlayItem overlayitem = new OverlayItem(point, "Access Point", "This is a snippit...");
+
+				iOverlay.addOverlay(overlayitem);
+
+				//publishProgress(x);
+
+				c.moveToNext();
+			}
+			mOverlays.add(iOverlay);
+			c.close();
+
+			return null;
+	    }
+
+	    protected void onProgressUpdate(Integer... progress) {
+	    	//progressDialog.setProgress((progress[0] / count) * 100);
+
+			super.onProgressUpdate((progress[0] / count) * 100);
+		}
+
+	    protected void onPostExecute() {
+	    	//removeDialog(DIALOG_LOADING);
+	    }
 	}
 
 	@Override
-	protected void onDestroy()
-	{
+	protected void onCreate(Bundle icicle) {
+		super.onCreate(icicle);
+
+		mDbAdapter = new AccessPointAdapter(this);
+        mDbAdapter.open();
+
+		setContentView(R.layout.map);
+
+		mMapView = (MapView) findViewById(R.id.mapview);
+		mMapView.setBuiltInZoomControls(true);
+		mMapView.setReticleDrawMode(MapView.ReticleDrawMode.DRAW_RETICLE_OVER);
+		mController = (MapController) mMapView.getController();
+		mLocationOverlay = new MyLocationOverlay(WifiMap.this, mMapView);
+
+		mMapOverlays = mMapView.getOverlays();
+		mDrawable = getResources().getDrawable(android.R.drawable.star_on);  //R.drawable.marker);
+		mItemizedOverlay = new WifiApItemizedOverlay(mDrawable);
+	}
+
+	@Override
+	protected void onDestroy() {
 		super.onDestroy();
 	}
 
 	@Override
-	protected void onPause()
-	{
+	protected void onPause() {
 		super.onPause();
 	}
 
 	@Override
-	protected void onResume()
-	{
+	protected void onResume() {
 		super.onResume();
 
 		Intent i = getIntent();
         String action = i.getAction();
 
-        mapOverlays.add(mLocationOverlay);
+        mMapOverlays.add(mLocationOverlay);
         mLocationOverlay.enableCompass();
         mLocationOverlay.enableMyLocation();
 
 		if(action.equals(ACTION_VIEW_SINGLE)) {
-			ap = dbAdapter.getRow(i.getIntExtra("id", 0));
+			mAccessPoint = mDbAdapter.getRow(i.getIntExtra("id", 0));
 
-			Double lat = ap.getLat() * 1E6;
-	        Double lng = ap.getLong() * 1E6;
+			Double lat = mAccessPoint.getLat() * 1E6;
+	        Double lng = mAccessPoint.getLong() * 1E6;
 
 			GeoPoint point = new GeoPoint(lat.intValue(), lng.intValue());
 			OverlayItem overlayitem = new OverlayItem(point, "Access Point", "This is a snippit...\nSecond line of snippit...\nThird!");
 
-			itemizedOverlay.addOverlay(overlayitem);
-			mapOverlays.add(itemizedOverlay);
+			mItemizedOverlay.addOverlay(overlayitem);
+			mMapOverlays.add(mItemizedOverlay);
 
 			mController.setCenter(point);
 			mController.setZoom(20);
 		} else if(action.equals(ACTION_VIEW_ALL)) {
 
-			Cursor c = dbAdapter.getAll();
+			mCursor = mDbAdapter.getAll();
+
+			/*
 			int count = c.getCount();
 			int columnIndex = c.getColumnIndex(AccessPointAdapter.KEY_ID);
 
@@ -112,12 +175,31 @@ public class WifiMap extends MapActivity
 			}
 			mapOverlays.add(itemizedOverlay);
 			c.close();
+			*/
+
+			new LoadWifiAp().execute();
 		}
 	}
 
 	@Override
-	protected boolean isRouteDisplayed()
-	{
+	protected Dialog onCreateDialog(int id) {
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+    	switch(id) {
+    		case DIALOG_LOADING:
+    			mProgressDialog = new ProgressDialog(this);
+    			mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+    			mProgressDialog.setMessage("Loading...");
+    			mProgressDialog.setCancelable(true);
+    			mProgressDialog.show();
+    			return mProgressDialog;
+    		default:
+    			return null;
+    	}
+	}
+	
+	@Override
+	protected boolean isRouteDisplayed() {
 		return false;
 	}
 }

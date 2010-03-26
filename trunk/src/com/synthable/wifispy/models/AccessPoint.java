@@ -13,8 +13,7 @@ public class AccessPoint
 	private Double Long;
 	private boolean isNew = false;
 
-	public AccessPoint()
-	{
+	public AccessPoint() {
 		isNew = true;
 	}
 

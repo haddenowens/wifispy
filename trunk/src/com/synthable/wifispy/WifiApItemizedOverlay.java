@@ -28,14 +28,16 @@ public class WifiApItemizedOverlay extends ItemizedOverlay<OverlayItem>
 	}
 
 	@Override
-	public boolean onTap(GeoPoint p, MapView mapView)
-	{
-		
+	public boolean onTap(GeoPoint p, MapView mapView) {
 		return super.onTap(p, mapView);
 	}
 
 	public void addOverlay(OverlayItem overlay) {
 	    mOverlays.add(overlay);
 	    populate();
+	}
+	
+	public void clear() {
+		mOverlays.clear();
 	}
 }
