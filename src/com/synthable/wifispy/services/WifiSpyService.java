@@ -16,8 +16,11 @@ import android.widget.Toast;
 
 public class WifiSpyService extends Service
 {
-	private WifiManager wifi;
-	private LocationManager gps;
+	private WifiManager mWifi;
+	private LocationManager mLocationManager;
+	private String mProvider;
+
+	public Location mLocation = null;
 
 	/**
      * Class for clients to access.  Because we know this service always
@@ -30,17 +33,13 @@ public class WifiSpyService extends Service
         }
     }
 
-    private Location location = null;
-
 	private LocationListener myLocationListener = new LocationListener()
 	{
 		public void onLocationChanged(Location location) {
-			Log.v("LocationListener()", "onLocationChanged()");
 			setLocation(location);
 		}
 
 		public void onProviderDisabled(String provider){
-			Log.v("LocationListener()", "onProviderDisabled()");
 			setLocation(null);
 		}
 
@@ -48,29 +47,22 @@ public class WifiSpyService extends Service
 		public void onStatusChanged(String provider, int status, Bundle extras){ }
 	};
 
-    // This is the object that receives interactions from clients.  See
-    // RemoteService for a more complete example.
     private final IBinder mBinder = new ServiceBinder();
 
 	@Override
-	public IBinder onBind(Intent intent)
-	{
-		wifi.startScan();
+	public IBinder onBind(Intent intent) {
+		mWifi.startScan();
 		return mBinder;
 	}
 
 	@Override
-	public void onCreate()
-	{
-//Log.v("Service.onCreate()", "in");
-		wifi = (WifiManager)getSystemService(Context.WIFI_SERVICE);
-
-		gps = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+	public void onCreate() {
+		mWifi = (WifiManager)getSystemService(Context.WIFI_SERVICE);
+		mLocationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
 	}
 
 	@Override
-	public void onStart(Intent intent, int startId)
-	{
+	public void onStart(Intent intent, int startId) {
 		Toast.makeText(this, "WifiSpy Service is starting...", Toast.LENGTH_SHORT).show();
 
 		Criteria criteria = new Criteria();
@@ -80,54 +72,52 @@ public class WifiSpyService extends Service
 		//criteria.setCostAllowed(true);
 		//criteria.setPowerRequirement(Criteria.POWER_LOW);
 
-		String provider = gps.getBestProvider(criteria, true);
+		mProvider = mLocationManager.getBestProvider(criteria, true);
 
-		gps.requestLocationUpdates(provider, 2000, 10, myLocationListener);
-		location = gps.getLastKnownLocation(provider);
+		mLocationManager.requestLocationUpdates(mProvider, 2000, 10, myLocationListener);
 
-		if(!wifi.isWifiEnabled()) {
-			wifi.setWifiEnabled(true);
+		if(!mWifi.isWifiEnabled()) {
+			mWifi.setWifiEnabled(true);
 		}
 	}
 
 	@Override
-	public void onDestroy()
-	{
+	public void onDestroy() {
 		super.onDestroy();
 
 		Toast.makeText(this, "WifiSpy Service is stopping...", Toast.LENGTH_SHORT).show();
 	}
 
 	@Override
-	public void onRebind(Intent intent)
-	{
+	public void onRebind(Intent intent) {
 		super.onRebind(intent);
-
-//Log.v("Service.onRebind()", "in");
 	}
 
 	@Override
-	public boolean onUnbind(Intent intent)
-	{
-//Log.v("Service.onUnbind()", "in");
-
+	public boolean onUnbind(Intent intent) {
 		return super.onUnbind(intent);
 	}
 
 	public WifiManager getWifi() {
-		return wifi;
+		return mWifi;
 	}
 
 	public void setLocation(Location location) {
-		this.location = location;
+		mLocation = location;
 	}
 
 	public Location getLocation() {
-		return location;
+		if(mLocation == null) {
+			mLocation = mLocationManager.getLastKnownLocation(mProvider);
+		}
+		return mLocation;
 	}
 
-	public static int getChannel(int frequency)
-	{
+	public LocationManager getGps() {
+		return mLocationManager;
+	}
+
+	public static int getChannel(int frequency) {
 		switch(frequency) {
 			case 2412:
 				return 1;

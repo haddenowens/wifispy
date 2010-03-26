@@ -43,32 +43,30 @@ public class AccessPointAdapter
 	public static final String KEY_LONG = "longitude";
 	public static final int LONG_COLUMN = 7;
 
-	private SQLiteDatabase db;
-	private AccessPointDbHelper dbHelper;
+	private SQLiteDatabase mDb;
+	private AccessPointDbHelper mDbHelper;
 
-	private final Context context;
+	private final Context mContext;
 
-	public AccessPointAdapter(Context _context)
-	{
-		context = _context;
-		dbHelper = new AccessPointDbHelper(context, DATABASE_NAME, null, DATABASE_VERSION);
+	public AccessPointAdapter(Context _context) {
+		mContext = _context;
+		mDbHelper = new AccessPointDbHelper(mContext, DATABASE_NAME, null, DATABASE_VERSION);
 	}
 
 	public AccessPointAdapter open() throws SQLException {
 		try {
-			db = dbHelper.getWritableDatabase();
+			mDb = mDbHelper.getWritableDatabase();
 		} catch(SQLiteException e) {
-			db = dbHelper.getReadableDatabase();
+			mDb = mDbHelper.getReadableDatabase();
 		}
 		return this;
 	}
 
 	public void close() {
-		db.close();
+		mDb.close();
 	}
 
-	public long insert(AccessPoint ap)
-	{
+	public long insert(AccessPoint ap) {
 		ContentValues contentValues = new ContentValues();
 
 		contentValues.put(KEY_SSID, ap.getSsid());
@@ -79,33 +77,32 @@ public class AccessPointAdapter
 		contentValues.put(KEY_LAT, ap.getLat());
 		contentValues.put(KEY_LONG, ap.getLong());
 
-		return db.insert(DATABASE_TABLE, null, contentValues);
+		return mDb.insert(DATABASE_TABLE, null, contentValues);
 	}
 
 	public int delete(int id) {
-		return db.delete(DATABASE_TABLE, KEY_ID + "=" + id, null);
+		return mDb.delete(DATABASE_TABLE, KEY_ID + "=" + id, null);
 	}
 
 	public Cursor getAll() {
-		return db.query(DATABASE_TABLE, new String[] { KEY_ID, KEY_SSID, KEY_BSSID, KEY_DBM, KEY_FREQUENCY, KEY_CAPABILITIES, KEY_LONG, KEY_LAT }, null, null, null, null, null);
+		return mDb.query(DATABASE_TABLE, new String[] { KEY_ID, KEY_SSID, KEY_BSSID, KEY_DBM, KEY_FREQUENCY, KEY_CAPABILITIES, KEY_LONG, KEY_LAT }, null, null, null, null, null);
 	}
 
 	public Cursor findRowBySsid(String ssid) {
 		String where = KEY_SSID +" = '"+ ssid +"'";
-		return db.query(DATABASE_TABLE, new String[] { KEY_ID, KEY_SSID }, where, null, null, null, null);
+		return mDb.query(DATABASE_TABLE, new String[] { KEY_ID, KEY_SSID }, where, null, null, null, null);
 	}
 	
 	public Cursor findRowByBssid(String bssid) {
 		String where = KEY_BSSID +" = '"+ bssid +"'";
-		return db.query(DATABASE_TABLE, new String[] { KEY_ID, KEY_BSSID }, where, null, null, null, null);
+		return mDb.query(DATABASE_TABLE, new String[] { KEY_ID, KEY_BSSID }, where, null, null, null, null);
 	}
 
-	public AccessPoint getRow(int id)
-	{
+	public AccessPoint getRow(int id) {
 		AccessPoint ap = new AccessPoint();
 
 		String where = KEY_ID +" = "+ id;
-		Cursor c = db.query(DATABASE_TABLE, null, where, null, null, null, null);
+		Cursor c = mDb.query(DATABASE_TABLE, null, where, null, null, null, null);
 		c.moveToFirst();
 
 		ap.setNew(false);
@@ -117,8 +114,6 @@ public class AccessPointAdapter
 		ap.setDbm(c.getInt(DBM_COLUMN));
 		ap.setLat(c.getDouble(LAT_COLUMN));
 		ap.setLong(c.getDouble(LONG_COLUMN));
-
-		//Log.v("getRow().1", Integer.toString(c.getInt(DBM_COLUMN)));
 
 		return ap;
 	}
@@ -137,13 +132,11 @@ public class AccessPointAdapter
 		contentValues.put(KEY_LAT, ap.getLat());
 		contentValues.put(KEY_LONG, ap.getLong());
 
-		return db.update(DATABASE_TABLE, contentValues, where, null);
+		return mDb.update(DATABASE_TABLE, contentValues, where, null);
 	}
 
 
-	private static class AccessPointDbHelper extends SQLiteOpenHelper
-	{
-		// SQL Statement to create a new database.
+	private static class AccessPointDbHelper extends SQLiteOpenHelper {
 		private static final String DATABASE_CREATE =
 			"CREATE TABLE "+ DATABASE_TABLE +"("
 				+ KEY_ID +" integer primary key autoincrement,"
@@ -156,8 +149,7 @@ public class AccessPointAdapter
 				+ KEY_LONG +" double not null default 0"
 			+");";
 
-		public AccessPointDbHelper(Context context, String name, CursorFactory factory, int version)
-		{
+		public AccessPointDbHelper(Context context, String name, CursorFactory factory, int version) {
 			super(context, name, factory, version);
 		}
 
@@ -165,8 +157,7 @@ public class AccessPointAdapter
 		 * Called when no database exists in disk and the helper class needs to create a new one.
 		 */
 		@Override
-		public void onCreate(SQLiteDatabase _db)
-		{
+		public void onCreate(SQLiteDatabase _db) {
 			Log.v("database_create", DATABASE_CREATE);
 			_db.execSQL(DATABASE_CREATE);
 		}
@@ -176,12 +167,8 @@ public class AccessPointAdapter
 		 *  database on disk needs to be upgraded to the current version.
 		 */
 		@Override
-		public void onUpgrade(SQLiteDatabase _db, int _oldVersion, int _newVersion)
-		{
-			// Log the version upgrade.
-			Log.v("TaskDBAdapter", "Upgrading from version " + _oldVersion
-					+ " to " + _newVersion
-					+ ", which will destroy all old data");
+		public void onUpgrade(SQLiteDatabase _db, int _oldVersion, int _newVersion) {
+			Log.v("TaskDBAdapter", "Upgrading from version "+ _oldVersion +" to "+ _newVersion +", which will destroy all old data");
 
 			/**
 			 *  Upgrade the existing database to conform to the new version.
@@ -190,8 +177,32 @@ public class AccessPointAdapter
 			 */
 			_db.execSQL("DROP TABLE IF EXISTS " + DATABASE_TABLE);
 
-			// Create a new one.
 			onCreate(_db);
 		}
+	}
+
+	public static String getEncryptionMethods(String capabilities) {
+		boolean wpa = false;
+		String cyphers = "";
+
+		if(capabilities.contains("WPA")) {
+			wpa = true;
+			cyphers = "WPA";
+		}
+
+		if(capabilities.contains("WPA2")) {
+			/*if(wpa == true) {
+				cyphers = "WPA/WPA2";
+			} else {
+				cyphers = "WPA2";
+			}*/
+			cyphers += "\nWPA2";
+		}
+
+		if(capabilities.contains("[WEP]")) {
+			cyphers += "\nWEP";
+		}
+
+		return cyphers;
 	}
 }
