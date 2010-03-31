@@ -71,8 +71,8 @@ public class WifiMap extends MapActivity {
                 Double lng = ap.getLong() * 1E6;
 
                 GeoPoint point = new GeoPoint(lat.intValue(), lng.intValue());
-                OverlayItem overlayitem = new OverlayItem(point,
-                        "Access Point", "This is a snippit...");
+                OverlayItem overlayitem = new OverlayItem(point, "Access Point",
+                    "This is a snippit...");
 
                 iOverlay.addOverlay(overlayitem);
 
@@ -146,7 +146,7 @@ public class WifiMap extends MapActivity {
 
             GeoPoint point = new GeoPoint(lat.intValue(), lng.intValue());
             OverlayItem overlayitem = new OverlayItem(point, "Access Point",
-                    "This is a snippit...\nSecond line of snippit...\nThird!");
+                "This is a snippit...\nSecond line of snippit...\nThird!");
 
             mItemizedOverlay.addOverlay(overlayitem);
             mMapOverlays.add(mItemizedOverlay);
@@ -185,8 +185,7 @@ public class WifiMap extends MapActivity {
         switch (id) {
             case DIALOG_LOADING:
                 mProgressDialog = new ProgressDialog(this);
-                mProgressDialog
-                        .setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
                 mProgressDialog.setMessage("Loading...");
                 mProgressDialog.setCancelable(true);
                 mProgressDialog.show();
