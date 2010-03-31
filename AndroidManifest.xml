@@ -14,6 +14,7 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <activity android:name=".WifiApDetails"/>
         <activity android:name=".WifiMap" android:theme="@android:style/Theme.NoTitleBar"/>
         <service android:name=".services.WifiSpyService"/>
         <!-- <receiver android:name=".ScanResultReceiver">
@@ -22,7 +23,6 @@
             </intent-filter>
         </receiver> -->
         <uses-library android:name="com.google.android.maps"/>
-        <activity android:name=".WifiApDetails"/>
     </application>
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>

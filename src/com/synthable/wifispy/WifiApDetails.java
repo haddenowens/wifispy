@@ -49,32 +49,27 @@ public class WifiApDetails extends ListActivity {
         startManagingCursor(mCursor);
 
         String[] from = new String[] {
-                AccessPointAdapter.KEY_ID, AccessPointAdapter.KEY_SSID,
-                AccessPointAdapter.KEY_DBM, AccessPointAdapter.KEY_FREQUENCY,
-                AccessPointAdapter.KEY_CAPABILITIES
+            AccessPointAdapter.KEY_ID, AccessPointAdapter.KEY_SSID, AccessPointAdapter.KEY_DBM,
+            AccessPointAdapter.KEY_FREQUENCY, AccessPointAdapter.KEY_CAPABILITIES
         };
         int[] to = new int[] {
-                R.id.id, R.id.ssid, R.id.bestDbm, R.id.channel, R.id.encryption
+            R.id.id, R.id.ssid, R.id.bestDbm, R.id.channel, R.id.encryption
         };
 
-        mAccessPoints = new SimpleCursorAdapter(WifiApDetails.this,
-                R.layout.home_row, mCursor, from, to);
+        mAccessPoints = new SimpleCursorAdapter(WifiApDetails.this, R.layout.home_row, mCursor,
+            from, to);
         mAccessPoints.setViewBinder(new SimpleCursorAdapter.ViewBinder() {
-            public boolean setViewValue(View view, Cursor cursor,
-                    int columnIndex) {
+            public boolean setViewValue(View view, Cursor cursor, int columnIndex) {
                 switch (columnIndex) {
                     case 3:
                         TextView t = (TextView) view;
-                        int dbm = cursor.getInt(cursor
-                                .getColumnIndex(AccessPointAdapter.KEY_DBM));
+                        int dbm = cursor.getInt(cursor.getColumnIndex(AccessPointAdapter.KEY_DBM));
                         t.setText(dbm + "dBm");
                         return true;
                     case 4:
                         TextView c = (TextView) view;
-                        int channel = WifiSpyService
-                                .getChannel(cursor
-                                        .getInt(cursor
-                                                .getColumnIndex(AccessPointAdapter.KEY_FREQUENCY)));
+                        int channel = WifiSpyService.getChannel(cursor.getInt(cursor
+                            .getColumnIndex(AccessPointAdapter.KEY_FREQUENCY)));
                         c.setText("Ch. " + channel);
                         return true;
                     default:
@@ -115,21 +110,17 @@ public class WifiApDetails extends ListActivity {
         switch (id) {
             case DIALOG_CONFIRM_DELETE:
                 builder.setCancelable(true).setTitle("Confirm").setMessage(
-                        "Are you sure you want to delete that access point?")
-                        .setPositiveButton("Yes",
-                                new DialogInterface.OnClickListener() {
-                                    public void onClick(DialogInterface dialog,
-                                            int id) {
-                                        mDbAdapter.delete(SELECTED_AP_ID);
-                                        mCursor.requery();
-                                    }
-                                }).setNegativeButton("No",
-                                new DialogInterface.OnClickListener() {
-                                    public void onClick(DialogInterface dialog,
-                                            int id) {
-                                        dialog.dismiss();
-                                    }
-                                });
+                    "Are you sure you want to delete that access point?").setPositiveButton("Yes",
+                    new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            mDbAdapter.delete(SELECTED_AP_ID);
+                            mCursor.requery();
+                        }
+                    }).setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.dismiss();
+                    }
+                });
                 return builder.create();
             case DIALOG_EXPORTING:
                 ProgressDialog progressDialog;
@@ -140,17 +131,15 @@ public class WifiApDetails extends ListActivity {
                 return progressDialog;
             case DIALOG_DONE_EXPORTING:
                 builder
-                        .setCancelable(true)
-                        .setTitle("Done exporting")
-                        .setMessage(
-                                "Done exporting your Access Point selections to a Google Earth KML file on your SD Card.")
-                        .setNeutralButton("Ok",
-                                new DialogInterface.OnClickListener() {
-                                    public void onClick(DialogInterface dialog,
-                                            int id) {
-                                        dialog.dismiss();
-                                    }
-                                });
+                    .setCancelable(true)
+                    .setTitle("Done exporting")
+                    .setMessage(
+                        "Done exporting your Access Point selections to a Google Earth KML file on your SD Card.")
+                    .setNeutralButton("Ok", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            dialog.dismiss();
+                        }
+                    });
                 return builder.create();
             default:
                 return null;
