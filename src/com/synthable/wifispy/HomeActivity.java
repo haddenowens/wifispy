@@ -62,22 +62,10 @@ public class HomeActivity extends ListActivity {
 
     static final String WIFISPY_SERVICE_CLASS = "com.synthable.wifispy.WifiSpyService";
 
-    private WifiSpyService mBoundService = null;
-    private Location mLocation;
     private LocationManager mLocationManager;
     private SimpleCursorAdapter mAccessPoints;
     private AccessPointAdapter mDbAdapter;
     private Cursor mCursor;
-
-    private ServiceConnection mConnection = new ServiceConnection() {
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            mBoundService = ((WifiSpyService.ServiceBinder) service).getService();
-        }
-
-        public void onServiceDisconnected(ComponentName className) {
-            mBoundService = null;
-        }
-    };
 
     private BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
@@ -298,11 +286,7 @@ public class HomeActivity extends ListActivity {
                         startService();
                     }
                 } else {
-                    if(mConnection != null) {
-                        //unbindService(mConnection);
-                        stopService(new Intent(HomeActivity.this, WifiSpyService.class));
-                    }
-                    mBoundService = null;
+                    stopService(new Intent(HomeActivity.this, WifiSpyService.class));
                     SERVICE_STATUS = 0;
                 }
                 return true;
@@ -386,11 +370,7 @@ public class HomeActivity extends ListActivity {
     }
 
     private void startService() {
-        if(SERVICE_STATUS == 0) {
-            //startService(new Intent(HomeActivity.this, WifiSpyService.class));
-        }
         startService(new Intent(HomeActivity.this, WifiSpyService.class));
-        //bindService(new Intent(HomeActivity.this, WifiSpyService.class), mConnection, Context.BIND_AUTO_CREATE);
         SERVICE_STATUS = 1;
     }
 
