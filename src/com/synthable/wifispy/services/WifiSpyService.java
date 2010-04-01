@@ -17,6 +17,7 @@ import android.net.wifi.WifiManager;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.synthable.wifispy.adapters.AccessPointAdapter;
@@ -37,9 +38,14 @@ public class WifiSpyService extends Service {
         public void onReceive(Context context, Intent intent) {
             List<ScanResult> results = mWifi.getScanResults();
             int count = results.size();
+            Location location = getLocation();
 
-            Double Lat = getLocation().getLatitude();
-            Double Long = getLocation().getLongitude();
+            if(location == null) {
+                return;
+            }
+
+            Double Lat = location.getLatitude();
+            Double Long = location.getLongitude(); 
 
             Cursor c = null;
             AccessPoint ap = new AccessPoint();
@@ -105,10 +111,11 @@ public class WifiSpyService extends Service {
         }
 
         public void onProviderEnabled(String provider) {
-            
+            Log.v("onProviderEnabled()", provider);
         }
 
         public void onStatusChanged(String provider, int status, Bundle extras) {
+            Log.v("onStatusChanged()", provider +" : "+ status +" : ");
         }
     };
 
