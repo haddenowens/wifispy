@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<manifest android:versionCode="3" android:versionName="0.2b"
+<manifest android:versionCode="7" android:versionName="0.3.3b"
     package="com.synthable.wifispy" xmlns:android="http://schemas.android.com/apk/res/android">
 
     <supports-screens android:largeScreens="true"
@@ -7,7 +7,7 @@
           android:smallScreens="true"
           android:anyDensity="true" />
 
-    <application android:icon="@drawable/icon" android:label="@string/app_name" android:debuggable="true">
+    <application android:icon="@drawable/icon" android:label="@string/app_name">
         <activity android:name=".HomeActivity" android:theme="@android:style/Theme.NoTitleBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
