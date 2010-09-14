@@ -58,7 +58,7 @@ public class AccessPointListAdapter extends SimpleCursorAdapter {
             LayoutInflater vi;
             vi = (LayoutInflater) mContext
                     .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            vi.inflate(R.layout.home_row, row, true);
+            vi.inflate(R.layout.accesspointlist_row, row, true);
         } else {
             row = (RelativeLayout) convertView;
         }
