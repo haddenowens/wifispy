@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<ListView android:layout_width="fill_parent"
-	android:layout_height="fill_parent" xmlns:android="http://schemas.android.com/apk/res/android"
-	android:id="@+android:id/list"></ListView>
+<LinearLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:orientation="vertical" android:layout_height="fill_parent" android:layout_width="fill_parent" android:gravity="center_vertical|center_horizontal" android:padding="20sp">
+<Button android:layout_height="wrap_content" android:text="Scan" android:id="@+id/home_scan_button" android:layout_width="fill_parent" android:onClick="onClickListener"></Button><Button android:layout_height="wrap_content" android:text="Map" android:id="@+id/home_map_button" android:layout_width="fill_parent"></Button><Button android:layout_height="wrap_content" android:id="@+id/home_profiles_button" android:text="Profiles" android:layout_width="fill_parent"></Button><Button android:layout_height="wrap_content" android:id="@+id/home_settings_button" android:text="Settings" android:layout_width="fill_parent"></Button>
+</LinearLayout>

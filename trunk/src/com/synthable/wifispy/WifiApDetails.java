@@ -56,7 +56,7 @@ public class WifiApDetails extends ListActivity {
             R.id.id, R.id.ssid, R.id.bestDbm, R.id.channel, R.id.encryption
         };
 
-        mAccessPoints = new SimpleCursorAdapter(WifiApDetails.this, R.layout.home_row, mCursor,
+        mAccessPoints = new SimpleCursorAdapter(WifiApDetails.this, R.layout.accesspointlist_row, mCursor,
             from, to);
         mAccessPoints.setViewBinder(new SimpleCursorAdapter.ViewBinder() {
             public boolean setViewValue(View view, Cursor cursor, int columnIndex) {
