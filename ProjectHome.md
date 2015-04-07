@@ -1,0 +1,1 @@
+WifiSpy is an open source Android application that allows the user to passively detect & record wifi hotspots for analysis & map plotting later.
